@@ -14,8 +14,9 @@ useEffect(() => {
     if (token) {
       // ✅ Define the socket FIRST
       const newSocket = io(import.meta.env.VITE_API_URL, {
-        auth: { token }
-      });
+  auth: { token },
+  transports: ['websocket'] // ✅ Forces a faster connection
+});
 
       setSocket(newSocket);
 
