@@ -8,13 +8,14 @@ const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ identifier: '', password: '', name: '' });
-  const { login } = useAuth();
+  
+  // ✅ Get the dynamic URL from our Context
+  const { login, API_BASE_URL } = useAuth(); 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Ensure name is present for Signup
     if (!isLogin && !formData.name) {
         alert("Please enter your name");
         return;
@@ -23,8 +24,10 @@ const AuthPage = () => {
     const action = isLogin ? '/login' : '/signup';
     
     try {
-      const targetURL = `http://localhost:5000/api/auth${action}`;
-      // Log exactly what you are sending to the server
+      // ✅ FIX: Removed http://localhost:5000 and used API_BASE_URL
+      const targetURL = `${API_BASE_URL}/api/auth${action}`;
+      
+      console.log("Connecting to:", targetURL);
       console.log("Payload:", formData);
 
       const { data } = await axios.post(targetURL, formData);
@@ -32,7 +35,6 @@ const AuthPage = () => {
       login(data.user, data.token); 
       navigate('/', { replace: true }); 
     } catch (err) {
-      // This will now show you EXACTLY why the backend said no
       const errorMsg = err.response?.data?.message || "Auth Failed";
       console.error("Backend Error Details:", err.response?.data);
       alert(errorMsg);
@@ -60,7 +62,7 @@ const AuthPage = () => {
             <input
               type="text"
               placeholder="Full Name"
-              className="w-full bg-black border border-white/5 rounded-xl p-4 outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              className="w-full bg-black border border-white/5 rounded-xl p-4 outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white"
               onChange={(e) => setFormData({...formData, name: e.target.value})}
               required
             />
@@ -70,7 +72,7 @@ const AuthPage = () => {
             <input
               type="text"
               placeholder="Email or Mobile"
-              className="w-full bg-black border border-white/5 rounded-xl p-4 pl-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              className="w-full bg-black border border-white/5 rounded-xl p-4 pl-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white"
               onChange={(e) => setFormData({...formData, identifier: e.target.value})}
               required
             />
@@ -81,7 +83,7 @@ const AuthPage = () => {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              className="w-full bg-black border border-white/5 rounded-xl p-4 pl-12 pr-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              className="w-full bg-black border border-white/5 rounded-xl p-4 pl-12 pr-12 outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white"
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               required
             />
@@ -95,7 +97,7 @@ const AuthPage = () => {
             </button>
           </div>
           
-          <button className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 active:scale-95">
+          <button className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 active:scale-95 text-white">
             {isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
