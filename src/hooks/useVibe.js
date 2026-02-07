@@ -16,22 +16,25 @@ export const useVibe = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/rooms/${roomCode}`);
+        // ✅ UPDATED: Removed localhost. 
+        // This now uses the baseURL set in AuthContext
+        const res = await axios.get(`/api/rooms/${roomCode}`);
         setQueue(res.data.queue || []);
         setNowPlaying(res.data.nowPlaying || null);
-      } catch (err) { console.error("Refresh Load Error:", err); }
+      } catch (err) { 
+        console.error("Refresh Load Error:", err); 
+      }
     };
 
     if (roomCode) fetchInitialData();
 
     if (socket && roomCode && user) {
-      // ✅ Pass user name when joining for tracking
       socket.emit('join-room', { roomCode, userName: user.name });
 
       socket.on('update-queue', (data) => {
-      setQueue(data.queue || []);
-      setNowPlaying(data.nowPlaying || null); // This forces the player to reload with the new videoId
-    });
+        setQueue(data.queue || []);
+        setNowPlaying(data.nowPlaying || null); 
+      });
 
       socket.on('update-vibers', (data) => {
         setVibers(data.users);
@@ -51,56 +54,33 @@ export const useVibe = () => {
     };
   }, [socket, roomCode, user, setQueue, setNowPlaying]);
 
-  const addSongToQueue = (song) => {
-    if (socket && roomCode) {
-      socket.emit('add-song', { 
-        roomCode, 
-        songData: { 
-          videoId: song.videoId, 
-          title: song.title, 
-          thumbnail: song.thumbnail,
-          addedBy: user?.name || 'Guest',
-          votes: [],
-          totalWeight: 0
-        } 
-      });
-    }
-  };
-
-  const removeSong = (songId) => {
-    if (socket && roomCode) {
-      socket.emit('remove-song', { roomCode, songId });
-    }
-  };
-
-  const handleSongEnd = () => {
-    socket.emit('next-song', { roomCode });
-  };
-
-const castVote = (songId) => {
-  if (socket && roomCode && user) {
-    console.log("Casting vote for song:", songId);
-    socket.emit('vote-song', { 
-      roomCode, 
-      songId, 
-      userId: user.id || user._id // ✅ Backend needs this to prevent double voting
-    });
-  } else {
-    console.error("Missing socket, roomCode, or user for voting");
-  }
-};
+  // ... (rest of your functions like addSongToQueue, castVote, etc.)
 
   return { 
-    queue, 
     castVote,
+    queue, 
+    removeSong: (songId) => socket?.emit('remove-song', { roomCode, songId }),
     nowPlaying, 
+    setShowVibers, 
     vibers, 
     showVibers, 
-    setShowVibers, 
     lastJoined, 
-    handleSongEnd,
-    addSongToQueue,
-    removeSong,
+    handleSongEnd: () => socket?.emit('next-song', { roomCode }),
+    addSongToQueue: (song) => {
+      if (socket && roomCode) {
+        socket.emit('add-song', { 
+          roomCode, 
+          songData: { 
+            videoId: song.videoId, 
+            title: song.title, 
+            thumbnail: song.thumbnail,
+            addedBy: user?.name || 'Guest',
+            votes: [],
+            totalWeight: 0
+          } 
+        });
+      }
+    },
     socket,
     viberCount: vibers.length,
     isPremier: user?.membershipStatus === 'premier' 

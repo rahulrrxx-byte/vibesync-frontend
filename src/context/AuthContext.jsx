@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+
+// ✅ This correctly reads from Vercel's environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const AuthContext = createContext();
@@ -9,13 +11,16 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  // Set default base URL for all axios calls in the app
+  axios.defaults.baseURL = API_BASE_URL;
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/auth/me`);
+        // Now using the relative path because baseURL is set above
+        const { data } = await axios.get('/api/auth/me');
         setUser(data);
       } catch (err) {
-        // If this fails, it calls logout() and kicks you to AuthPage
         console.error("Token verification failed", err);
         logout();
       } finally {
@@ -32,17 +37,10 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = (userData, userToken) => {
-    // 1. Save to localStorage immediately
     localStorage.setItem('token', userToken);
-    
-    // 2. Set the axios header so the next request works
     axios.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
-    
-    // 3. Update state
     setToken(userToken);
     setUser(userData);
-    
-    // 4. IMPORTANT: Set loading to false so ProtectedRoute lets you in!
     setLoading(false); 
   };
 
@@ -54,7 +52,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, API_BASE_URL }}>
       {children}
     </AuthContext.Provider>
   );
