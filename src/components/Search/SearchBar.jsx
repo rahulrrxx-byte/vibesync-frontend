@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { searchSongs } from '../../services/api';
-import { Sparkles, Search, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { Search, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { useVibe } from '../../hooks/useVibe';
 
 const SearchBar = ({ roomCode }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [addedId, setAddedId] = useState(null); // Feedback for added songs
+  const [addedId, setAddedId] = useState(null); 
 
+  // Pulling the add function from your custom hook
   const { addSongToQueue } = useVibe(); 
 
   const handleSearch = async (e, isAiSearch = false) => {
@@ -17,13 +18,14 @@ const SearchBar = ({ roomCode }) => {
     
     setLoading(true);
     try {
+      // Calls your api.js service which points to the Render backend
       const { data } = await searchSongs(query, isAiSearch);
       setResults(data);
     } catch (err) {
-      console.error("Search failed. Using Mock Data.");
+      console.error("Search failed. Ensure your backend YouTube API key is set.");
+      // Fallback/Mock data for testing UI if backend fails
       setResults([
-        { videoId: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg' },
-        { videoId: 'kJQP7kiw5Fk', title: 'Luis Fonsi - Despacito', thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg' }
+        { videoId: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg' }
       ]);
     } finally {
       setLoading(false);
@@ -31,10 +33,11 @@ const SearchBar = ({ roomCode }) => {
   };
 
   const handleAddAction = (song) => {
+    // This triggers the socket.emit('add-song') in useVibe.js
     addSongToQueue(song);
     setAddedId(song.videoId);
     
-    // Reset the "Added" checkmark after 2 seconds
+    // UI feedback: Reset after a short delay
     setTimeout(() => {
       setAddedId(null);
       setResults([]);
@@ -55,7 +58,7 @@ const SearchBar = ({ roomCode }) => {
         />
       </form>
 
-      {/* Results List */}
+      {/* Results Dropdown/List */}
       <div className="space-y-3 mt-6">
         {loading && <p className="text-center text-zinc-500 animate-pulse text-sm">Searching YouTube...</p>}
         
@@ -65,7 +68,7 @@ const SearchBar = ({ roomCode }) => {
             
             <div className="flex-1 min-w-0">
               <p className="font-bold truncate text-sm text-white">{song.title}</p>
-              <p className="text-xs text-zinc-500">YouTube Video</p>
+              <p className="text-xs text-zinc-500 italic">YouTube Result</p>
             </div>
 
             <button 

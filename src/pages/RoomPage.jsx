@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useVibe } from '../hooks/useVibe';
@@ -9,9 +9,14 @@ import InvisiblePlayer from '../components/Player/InvisiblePlayer';
 
 const RoomPage = () => {
   const navigate = useNavigate();
-  const { code: roomCode } = useParams(); // Changed to :code to match App.jsx
+  const { code } = useParams(); 
+  const roomCode = code?.toUpperCase(); // Ensure uppercase for consistency
   const { socket } = useSocket();
-  const [hasInteracted, setHasInteracted] = useState(false);
+
+  // ✅ Initialize from sessionStorage to prevent overlay on refresh
+  const [hasInteracted, setHasInteracted] = useState(() => {
+    return sessionStorage.getItem(`vibe_interacted_${roomCode}`) === 'true';
+  });
 
   const { 
     castVote,
@@ -32,12 +37,17 @@ const RoomPage = () => {
       if (socket) {
         socket.emit('leave-room', { roomCode });
       }
+      // Clean up session storage on manual leave if desired
+      sessionStorage.removeItem(`vibe_interacted_${roomCode}`);
       navigate('/'); 
     }
   };
 
   const startPlayback = () => {
     setHasInteracted(true);
+    // ✅ Save interaction state to specific room
+    sessionStorage.setItem(`vibe_interacted_${roomCode}`, 'true'); 
+    
     if (queue.length > 0 && !nowPlaying) {
       socket.emit('next-song', { roomCode });
     }
@@ -46,18 +56,25 @@ const RoomPage = () => {
   return (
     <div className="flex w-full min-h-screen bg-black text-white overflow-hidden relative">
       
-      {/* Interaction Overlay to fix Autoplay Issues */}
-      {(!hasInteracted || (!nowPlaying && queue.length > 0)) && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[200] flex flex-col items-center justify-center p-6">
-          <div className="max-w-md w-full text-center space-y-6">
-            <h2 className="text-4xl font-black tracking-tighter">THE VIBE IS READY</h2>
-            <p className="text-zinc-400">Join the room to start syncing music and voting in real-time.</p>
+      {/* ✅ Interaction Overlay: Only shows if no interaction AND music is ready */}
+      {!hasInteracted && queue.length > 0 && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[200] flex flex-col items-center justify-center p-6 text-center">
+          <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-500">
+            <div className="space-y-2">
+              <h2 className="text-5xl font-black tracking-tighter italic">THE VIBE IS READY</h2>
+              <p className="text-zinc-400 text-lg">Your synchronized session is live. Tap below to enable real-time audio.</p>
+            </div>
+            
             <button 
               onClick={startPlayback}
-              className="w-full bg-purple-600 hover:bg-purple-500 text-white px-8 py-5 rounded-2xl font-bold text-xl transition-all hover:scale-[1.02] active:scale-95 shadow-2xl shadow-purple-500/40"
+              className="group relative w-full overflow-hidden rounded-2xl bg-purple-600 px-8 py-6 transition-all hover:bg-purple-500 active:scale-95 shadow-[0_0_40px_rgba(147,51,234,0.3)]"
             >
-              🚀 Join & Start Audio
+              <div className="relative z-10 flex items-center justify-center gap-3 font-black text-2xl uppercase tracking-widest">
+                <span>🚀 JOIN & SYNC</span>
+              </div>
             </button>
+            
+            <p className="text-[10px] text-zinc-600 uppercase tracking-[0.3em] font-bold">Autoplay Permissions Required</p>
           </div>
         </div>
       )}
