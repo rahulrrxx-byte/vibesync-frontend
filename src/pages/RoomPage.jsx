@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // ✅ Import useState
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useVibe } from '../hooks/useVibe';
@@ -9,13 +9,10 @@ import InvisiblePlayer from '../components/Player/InvisiblePlayer';
 
 const RoomPage = () => {
   const navigate = useNavigate();
-  const { id: roomCode } = useParams();
+  const { code: roomCode } = useParams(); // Changed to :code to match App.jsx
   const { socket } = useSocket();
-  
-  // ✅ 1. Add interaction state to bypass mobile/desktop autoplay blocks
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  // ✅ 2. Single, clean destructuring from useVibe
   const { 
     castVote,
     queue, 
@@ -40,7 +37,7 @@ const RoomPage = () => {
   };
 
   const startPlayback = () => {
-    setHasInteracted(true); // ✅ Record the user click
+    setHasInteracted(true);
     if (queue.length > 0 && !nowPlaying) {
       socket.emit('next-song', { roomCode });
     }
@@ -49,7 +46,7 @@ const RoomPage = () => {
   return (
     <div className="flex w-full min-h-screen bg-black text-white overflow-hidden relative">
       
-      {/* ✅ 3. Fixed Interaction Overlay Logic */}
+      {/* Interaction Overlay to fix Autoplay Issues */}
       {(!hasInteracted || (!nowPlaying && queue.length > 0)) && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[200] flex flex-col items-center justify-center p-6">
           <div className="max-w-md w-full text-center space-y-6">
@@ -61,13 +58,11 @@ const RoomPage = () => {
             >
               🚀 Join & Start Audio
             </button>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Browser Permission Required</p>
           </div>
         </div>
       )}
 
-      {/* MAIN CONTENT AREA */}
-      <div className={`flex-1 transition-all duration-500 ease-in-out relative flex flex-col w-full`}>
+      <div className="flex-1 transition-all duration-500 ease-in-out relative flex flex-col w-full">
         
         {lastJoined && (
           <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-indigo-400 px-6 py-3 rounded-2xl shadow-2xl z-50 animate-bounce border border-white/20">
@@ -84,12 +79,11 @@ const RoomPage = () => {
             </button>
             <div>
               <h2 className="text-purple-400 text-[10px] font-bold uppercase tracking-[0.2em]">Live Vibe</h2>
-              <h1 className="text-xl font-bold">{roomCode}</h1>
+              <h1 className="text-xl font-bold uppercase">{roomCode}</h1>
             </div>
           </div>
           
           <div className="flex items-center gap-3">
-            {/* ✅ 4. Mobile Toggle Button (Visible on small screens) */}
             <button 
               onClick={() => setShowVibers(!showVibers)}
               className="bg-white/5 hover:bg-white/10 p-3 rounded-xl text-sm font-medium transition-colors border border-white/10 relative"
@@ -127,7 +121,6 @@ const RoomPage = () => {
         <InvisiblePlayer roomCode={roomCode} onEnd={handleSongEnd} />
       </div>
 
-      {/* ✅ 5. Responsive Side Drawer (Slide-in mobile, fixed desktop) */}
       <aside className={`
         fixed lg:relative top-0 right-0 h-full bg-zinc-950 border-l border-white/5 
         flex flex-col z-[150] transition-transform duration-500 ease-in-out
@@ -152,7 +145,6 @@ const RoomPage = () => {
         </div>
       </aside>
 
-      {/* ✅ 6. Mobile Backdrop for Sidebar */}
       {showVibers && (
         <div className="fixed inset-0 bg-black/60 z-[140] lg:hidden backdrop-blur-sm" onClick={() => setShowVibers(false)} />
       )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useParams } from 'react-router-dom';
@@ -13,12 +13,14 @@ export const useVibe = () => {
   const [showVibers, setShowVibers] = useState(false);
   const [lastJoined, setLastJoined] = useState(null);
 
+  // Use the environment variable for API calls
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // ✅ UPDATED: Removed localhost. 
-        // This now uses the baseURL set in AuthContext
-        const res = await axios.get(`/api/rooms/${roomCode}`);
+        // Updated to use the dynamic API_BASE_URL to prevent 404s
+        const res = await axios.get(`${API_BASE_URL}/api/rooms/${roomCode}`);
         setQueue(res.data.queue || []);
         setNowPlaying(res.data.nowPlaying || null);
       } catch (err) { 
@@ -37,7 +39,7 @@ export const useVibe = () => {
       });
 
       socket.on('update-vibers', (data) => {
-        setVibers(data.users);
+        setVibers(data.users || []);
         if (data.newUser && data.newUser !== user.name) {
           setLastJoined(data.newUser);
           setTimeout(() => setLastJoined(null), 3000); 
@@ -52,9 +54,34 @@ export const useVibe = () => {
       socket?.off('update-vibers');
       socket?.off('error-msg');
     };
-  }, [socket, roomCode, user, setQueue, setNowPlaying]);
+  }, [socket, roomCode, user, setQueue, setNowPlaying, API_BASE_URL]);
 
-  // ... (rest of your functions like addSongToQueue, castVote, etc.)
+  // ✅ FIXED: Added the missing castVote function
+  const castVote = useCallback((songId) => {
+    if (socket && roomCode && user) {
+      socket.emit('vote-song', { 
+        roomCode, 
+        songId, 
+        userId: user._id 
+      });
+    }
+  }, [socket, roomCode, user]);
+
+  const addSongToQueue = (song) => {
+    if (socket && roomCode) {
+      socket.emit('add-song', { 
+        roomCode, 
+        songData: { 
+          videoId: song.videoId, 
+          title: song.title, 
+          thumbnail: song.thumbnail,
+          addedBy: user?.name || 'Guest',
+          votes: [],
+          totalWeight: 0
+        } 
+      });
+    }
+  };
 
   return { 
     castVote,
@@ -66,21 +93,7 @@ export const useVibe = () => {
     showVibers, 
     lastJoined, 
     handleSongEnd: () => socket?.emit('next-song', { roomCode }),
-    addSongToQueue: (song) => {
-      if (socket && roomCode) {
-        socket.emit('add-song', { 
-          roomCode, 
-          songData: { 
-            videoId: song.videoId, 
-            title: song.title, 
-            thumbnail: song.thumbnail,
-            addedBy: user?.name || 'Guest',
-            votes: [],
-            totalWeight: 0
-          } 
-        });
-      }
-    },
+    addSongToQueue,
     socket,
     viberCount: vibers.length,
     isPremier: user?.membershipStatus === 'premier' 
