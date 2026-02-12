@@ -161,6 +161,9 @@ const RoomPage = () => {
           ))}
         </div>
       </aside>
+            <main className="flex-1 overflow-y-auto p-6 pb-40 max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12">
+        {/* Added pb-40 to give more scrolling space at the bottom */}
+      </main>
 
       {showVibers && (
         <div className="fixed inset-0 bg-black/60 z-[140] lg:hidden backdrop-blur-sm" onClick={() => setShowVibers(false)} />
