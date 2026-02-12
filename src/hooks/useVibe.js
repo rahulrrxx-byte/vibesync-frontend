@@ -7,10 +7,10 @@ import axios from 'axios';
 export const useVibe = () => {
   const { socket, queue, setQueue, nowPlaying, setNowPlaying } = useSocket();
   const { user } = useAuth();
-  const { code } = useParams(); // URL usually has :code
-  const roomCode = code?.toUpperCase();
+  const { code } = useParams(); 
+  const roomCode = code?.toUpperCase(); // ✅ Critical: Force uppercase
   
-  const [vibers, setVibers] = useState([]);
+  const [vibers, setVibers] = useState([]); // ✅ Initialize as empty array
   const [showVibers, setShowVibers] = useState(false);
   const [lastJoined, setLastJoined] = useState(null);
 
@@ -23,13 +23,14 @@ export const useVibe = () => {
         setQueue(res.data.queue || []);
         setNowPlaying(res.data.nowPlaying || null);
       } catch (err) { 
-        console.error("Initial Load Error:", err); 
+        console.error("Initial Data Load Error:", err); 
       }
     };
 
     if (roomCode) fetchInitialData();
 
     if (socket && roomCode && user) {
+      // ✅ Handshake: Join room and send username
       socket.emit('join-room', { roomCode, userName: user.name });
 
       socket.on('update-queue', (data) => {
@@ -38,7 +39,7 @@ export const useVibe = () => {
       });
 
       socket.on('update-vibers', (data) => {
-        setVibers(data.users || []); // ✅ This updates the 0 vibers issue
+        setVibers(data.users || []); // ✅ Fixes the 0 viber count
         if (data.newUser && data.newUser !== user.name) {
           setLastJoined(data.newUser);
           setTimeout(() => setLastJoined(null), 3000); 
@@ -79,7 +80,7 @@ export const useVibe = () => {
 
   return { 
     castVote,
-    queue, 
+    queue: queue || [], // ✅ Always return an array to prevent .map errors
     removeSong: (songId) => socket?.emit('remove-song', { roomCode, songId }),
     nowPlaying, 
     setShowVibers, 
@@ -89,7 +90,7 @@ export const useVibe = () => {
     handleSongEnd: () => socket?.emit('next-song', { roomCode }),
     addSongToQueue,
     socket,
-    viberCount: vibers.length, // ✅ Dynamic count
+    viberCount: vibers.length, 
     isPremier: user?.membershipStatus === 'premier' 
   };
 };
