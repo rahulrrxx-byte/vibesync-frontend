@@ -7,24 +7,23 @@ import axios from 'axios';
 export const useVibe = () => {
   const { socket, queue, setQueue, nowPlaying, setNowPlaying } = useSocket();
   const { user } = useAuth();
-  const { id: roomCode } = useParams();
+  const { code } = useParams(); // URL usually has :code
+  const roomCode = code?.toUpperCase();
   
   const [vibers, setVibers] = useState([]);
   const [showVibers, setShowVibers] = useState(false);
   const [lastJoined, setLastJoined] = useState(null);
 
-  // Use the environment variable for API calls
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // Updated to use the dynamic API_BASE_URL to prevent 404s
         const res = await axios.get(`${API_BASE_URL}/api/rooms/${roomCode}`);
         setQueue(res.data.queue || []);
         setNowPlaying(res.data.nowPlaying || null);
       } catch (err) { 
-        console.error("Refresh Load Error:", err); 
+        console.error("Initial Load Error:", err); 
       }
     };
 
@@ -39,7 +38,7 @@ export const useVibe = () => {
       });
 
       socket.on('update-vibers', (data) => {
-        setVibers(data.users || []);
+        setVibers(data.users || []); // ✅ This updates the 0 vibers issue
         if (data.newUser && data.newUser !== user.name) {
           setLastJoined(data.newUser);
           setTimeout(() => setLastJoined(null), 3000); 
@@ -56,14 +55,9 @@ export const useVibe = () => {
     };
   }, [socket, roomCode, user, setQueue, setNowPlaying, API_BASE_URL]);
 
-  // ✅ FIXED: Added the missing castVote function
   const castVote = useCallback((songId) => {
     if (socket && roomCode && user) {
-      socket.emit('vote-song', { 
-        roomCode, 
-        songId, 
-        userId: user._id 
-      });
+      socket.emit('vote-song', { roomCode, songId, userId: user._id });
     }
   }, [socket, roomCode, user]);
 
@@ -95,7 +89,7 @@ export const useVibe = () => {
     handleSongEnd: () => socket?.emit('next-song', { roomCode }),
     addSongToQueue,
     socket,
-    viberCount: vibers.length,
+    viberCount: vibers.length, // ✅ Dynamic count
     isPremier: user?.membershipStatus === 'premier' 
   };
 };
