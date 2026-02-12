@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // ✅ Added useEffect to imports
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createRoom } from '../services/api';
@@ -12,38 +12,38 @@ const Lobby = () => {
   const [showPlans, setShowPlans] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ MOVED INSIDE: useEffect must be inside the component
- useEffect(() => {
-  const scriptId = 'razorpay-checkout-js';
-  
-  // Prevent duplicate scripts
-  if (!document.getElementById(scriptId)) {
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-  }
+  // Use your environment variable for the API URL
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  return () => {
-    // Only remove if the script is actually a child of the body to prevent the NotFoundError
-    const script = document.getElementById(scriptId);
-    if (script && script.parentNode === document.body) {
-      document.body.removeChild(script);
+  useEffect(() => {
+    const scriptId = 'razorpay-checkout-js';
+    
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
     }
-  };
-}, []);
-  // --- 1. SUBSCRIPTION LOGIC ---
+
+    return () => {
+      const script = document.getElementById(scriptId);
+      if (script && script.parentNode === document.body) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
   const handleUpgrade = async (planType) => {
     try {
-      // 🚨 Ensure your .env has RAZORPAY_PLAN_MONTHLY and RAZORPAY_PLAN_YEARLY
-      const { data: sub } = await axios.post('http://localhost:5000/api/payments/subscribe', { 
+      // Updated to use the dynamic API_BASE_URL
+      const { data: sub } = await axios.post(`${API_BASE_URL}/api/payments/subscribe`, { 
         planType, 
         userId: user._id 
       });
 
       const options = {
-        key: "rzp_test_SB0waBu2xxRAuj", // REPLACE WITH YOUR RAZORPAY KEY ID
+        key: "rzp_test_SB0waBu2xxRAuj", 
         subscription_id: sub.id, 
         name: "VibeSync Premier",
         description: `${planType.toUpperCase()} Subscription`,
@@ -54,7 +54,7 @@ const Lobby = () => {
             razorpay_signature: response.razorpay_signature,
             userId: user._id
           };
-          await axios.post('http://localhost:5000/api/payments/verify-subscription', verifyData);
+          await axios.post(`${API_BASE_URL}/api/payments/verify-subscription`, verifyData);
           alert("Success! You are now Premier.");
           window.location.reload();
         },
@@ -65,21 +65,26 @@ const Lobby = () => {
       rzp.open();
     } catch (err) {
       console.error("UI Error:", err);
-      alert("Payment failed to start. Check your backend terminal for the specific Razorpay error.");
+      alert("Payment failed. Please try again later.");
     }
   };
 
   const handleCreate = async () => {
     try {
       const { data } = await createRoom();
+      // Using navigate prevents the 'Found' redirect error
       navigate(`/room/${data.roomCode}`);
     } catch (err) {
-      alert("Failed to create room.");
+      alert("Failed to create room. Please check if the server is live.");
     }
   };
 
   const handleJoin = () => {
-    if (roomCode.trim()) navigate(`/room/${roomCode.toUpperCase()}`);
+    if (roomCode.trim()) {
+      navigate(`/room/${roomCode.toUpperCase()}`);
+    } else {
+      alert("Please enter a valid 6-letter code.");
+    }
   };
 
   return (
@@ -87,7 +92,7 @@ const Lobby = () => {
       <div className="max-w-6xl mx-auto flex justify-between items-center mb-16">
         <div className="flex items-center gap-2">
           <div className="bg-purple-600 p-2 rounded-lg"><Music size={24} /></div>
-          <h1 className="text-2xl font-black tracking-tighter italic">VIBESYNC</h1>
+          <h1 className="text-2xl font-black tracking-tighter italic uppercase">VibeSync</h1>
         </div>
         
         <div className="relative">
@@ -98,7 +103,7 @@ const Lobby = () => {
             <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
               <User size={18} />
             </div>
-            <span className="text-sm font-bold">{user?.name}</span>
+            <span className="text-sm font-bold">{user?.name || 'Guest'}</span>
           </button>
 
           {showProfile && (

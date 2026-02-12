@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { SocketProvider } from './context/SocketContext'; // ✅ Correct relative path
+import { SocketProvider } from './context/SocketContext'; 
 import AuthPage from './pages/AuthPage';
 import Lobby from './pages/Lobby';
 import RoomPage from './pages/RoomPage';
@@ -25,7 +25,8 @@ function App() {
                   <Lobby />
                 </ProtectedRoute>
               } />
-              <Route path="/room/:id" element={
+              {/* FIXED: Changed :id to :code to match Lobby.jsx navigate logic */}
+              <Route path="/room/:code" element={
                 <ProtectedRoute>
                   <RoomPage />
                 </ProtectedRoute>
